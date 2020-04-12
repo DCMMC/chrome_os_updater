@@ -73,6 +73,11 @@ function UpdateBootloaders {
     # Replace all old values with new values of ROOT-B
     sed -i "s|${root_a_val}|${root_b_uuid}|" "${grub_cfg_path}"
     sed -i "s|${root_b_val}|${root_b_uuid}|" "${grub_cfg_path}"
+    # DCMMC: change names of menuentry to more human readable
+    sed -i "s|local image A|ChromeOS A (sda3)|" "${grub_cfg_path}"
+    sed -i "s|local image B|ChromeOS B (sda3)|" "${grub_cfg_path}"
+    # DCMMC: change kernel flags to allow remount root as rw and load custom kernel modules
+    sed -i "s| ro | rw loadpin.enabled=0 |" "${grub_cfg_path}"
     # Replace first one with new value of ROOT-A
     sed -i "0,/${root_b_uuid}/s|${root_b_uuid}|${root_a_uuid}|" "${grub_cfg_path}"
     ### For Syslinux (Legacy) ###
@@ -86,8 +91,15 @@ function UpdateBootloaders {
     sed -i "s|${root_a_val}|${root_a_uuid}|" "${root_a_path}"
     sed -i "s|${root_b_val}|${root_b_uuid}|" "${root_b_path}"
     # Copy files into place
-    rm -rf "${efi_path}"/efi
+    # DCMMC: DONOT remove the efi! EFI entries of other systems such as Windows are in here.
+    # rm -rf "${efi_path}"/efi
+    # DCMMC: Windows boot as default
+    mv -f "${efi_path}"/efi/Boot "${efi_path}"/efi/Boot_last
     cp -a "${root}"/boot/{efi,syslinux} "${efi_path}"
+    mv -f "${efi_path}"/efi/ChromeOS "${efi_path}"/efi/ChromeOS_last
+    mv -f "${efi_path}"/efi/boot "${efi_path}"/efi/ChromeOS
+    cp -a "${efi_path}"/efi/Boot_last "${efi_path}"/efi/Boot
+    cp -f "${efi_path}"/efi/ChromeOS/grub.cfg "${efi_path}"/efi/Boot/grub.cfg
     # Copy the vmlinuz's into place for syslinux
     cp -f "${root}"/boot/vmlinuz "${efi_path}"/syslinux/vmlinuz.A
     cp -f "${root}"/boot/vmlinuz "${efi_path}"/syslinux/vmlinuz.B
